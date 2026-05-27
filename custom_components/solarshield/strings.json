@@ -1,0 +1,61 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Window & Room Geometry",
+        "description": "Configure the geometric parameters of the window and the point to protect from direct sunlight.",
+        "data": {
+          "window_azimuth": "Window azimuth (degrees from North, e.g. 180=South)",
+          "window_angular_width": "Window angular width (degrees)",
+          "glass_height": "Glass pane height (cm)",
+          "sill_height": "Sill height from floor (cm)",
+          "protect_distance": "Distance from window to protected point (cm)",
+          "protect_height": "Height of protected point from floor (cm)"
+        }
+      },
+      "cover": {
+        "title": "Cover Settings",
+        "description": "Select the cover entity and configure its behaviour.",
+        "data": {
+          "cover_entity": "Cover entity",
+          "cover_type": "Cover type",
+          "min_position": "Minimum position (%)",
+          "max_position": "Maximum position (%)",
+          "hysteresis": "Hysteresis (minimum change %)",
+          "update_interval": "Update interval (minutes)"
+        }
+      },
+      "optional": {
+        "title": "Optional Sensors",
+        "description": "These settings are optional but improve accuracy and comfort.",
+        "data": {
+          "lux_sensor": "External lux sensor (optional)",
+          "lux_threshold": "Minimum lux to activate",
+          "presence_sensor": "Room presence sensor (optional)",
+          "override_duration": "Manual override duration (minutes)"
+        }
+      }
+    },
+    "error": {
+      "invalid_entity": "The selected entity is not valid."
+    },
+    "abort": {
+      "already_configured": "This cover is already configured in SolarShield."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "SolarShield Options",
+        "data": {
+          "lux_threshold": "Minimum lux to activate",
+          "hysteresis": "Hysteresis (minimum change %)",
+          "update_interval": "Update interval (minutes)",
+          "override_duration": "Manual override duration (minutes)",
+          "min_position": "Minimum position (%)",
+          "max_position": "Maximum position (%)"
+        }
+      }
+    }
+  }
+}

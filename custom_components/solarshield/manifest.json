@@ -1,0 +1,12 @@
+{
+  "domain": "solarshield",
+  "name": "SolarShield HA",
+  "version": "1.0.0",
+  "documentation": "https://github.com/crionline/solarshield-ha",
+  "issue_tracker": "https://github.com/crionline/solarshield-ha/issues",
+  "codeowners": ["@crionline"],
+  "requirements": [],
+  "dependencies": ["sun"],
+  "iot_class": "calculated",
+  "config_flow": true
+}

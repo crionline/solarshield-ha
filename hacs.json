@@ -1,0 +1,6 @@
+{
+  "name": "SolarShield HA",
+  "domains": ["cover"],
+  "iot_class": "calculated",
+  "homeassistant": "2024.1.0"
+}

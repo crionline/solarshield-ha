@@ -1,0 +1,61 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Geometria finestra e stanza",
+        "description": "Configura i parametri geometrici della finestra e del punto da proteggere dalla luce solare diretta.",
+        "data": {
+          "window_azimuth": "Azimuth finestra (gradi dal Nord, es. 180=Sud)",
+          "window_angular_width": "Ampiezza angolare della finestra (gradi)",
+          "glass_height": "Altezza vetro (cm)",
+          "sill_height": "Altezza davanzale dal pavimento (cm)",
+          "protect_distance": "Distanza finestra-punto da proteggere (cm)",
+          "protect_height": "Altezza del punto da proteggere (cm)"
+        }
+      },
+      "cover": {
+        "title": "Impostazioni tapparella",
+        "description": "Seleziona l'entità tapparella e configura il comportamento.",
+        "data": {
+          "cover_entity": "Entità tapparella",
+          "cover_type": "Tipo tapparella",
+          "min_position": "Posizione minima (%)",
+          "max_position": "Posizione massima (%)",
+          "hysteresis": "Isteresi (variazione minima %)",
+          "update_interval": "Intervallo aggiornamento (minuti)"
+        }
+      },
+      "optional": {
+        "title": "Sensori opzionali",
+        "description": "Queste impostazioni sono facoltative ma migliorano accuratezza e comfort.",
+        "data": {
+          "lux_sensor": "Sensore lux esterno (opzionale)",
+          "lux_threshold": "Lux minimo per attivazione",
+          "presence_sensor": "Sensore presenza stanza (opzionale)",
+          "override_duration": "Durata override manuale (minuti)"
+        }
+      }
+    },
+    "error": {
+      "invalid_entity": "L'entità selezionata non è valida."
+    },
+    "abort": {
+      "already_configured": "Questa tapparella è già configurata in SolarShield."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opzioni SolarShield",
+        "data": {
+          "lux_threshold": "Lux minimo per attivazione",
+          "hysteresis": "Isteresi (variazione minima %)",
+          "update_interval": "Intervallo aggiornamento (minuti)",
+          "override_duration": "Durata override manuale (minuti)",
+          "min_position": "Posizione minima (%)",
+          "max_position": "Posizione massima (%)"
+        }
+      }
+    }
+  }
+}
