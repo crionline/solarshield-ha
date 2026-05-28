@@ -47,7 +47,7 @@ class SolarShieldConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
         if user_input is not None:
             self._geometry = user_input
-            return await self.async_step_cover()
+            return await self.async_step_cover(None)
 
         schema = vol.Schema({
             vol.Required(CONF_WINDOW_AZIMUTH, description={"suggested_value": 180}): vol.All(
@@ -82,7 +82,7 @@ class SolarShieldConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
         if user_input is not None:
             self._cover = user_input
-            return await self.async_step_optional()
+            return await self.async_step_optional(None)
 
         schema = vol.Schema({
             vol.Required(CONF_COVER_ENTITY): cv.entity_id,
