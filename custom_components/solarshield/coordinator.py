@@ -5,8 +5,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any
 
-from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.event import async_track_state_change_event, async_track_time_interval
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
@@ -52,8 +51,6 @@ class SolarShieldCoordinator(DataUpdateCoordinator):
         self._entry_id = entry_id
         self._override_until: datetime | None = None
         self._last_position: int | None = None
-        self._unsub_interval = None
-        self._unsub_sun = None
 
         update_interval = timedelta(
             minutes=config.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
@@ -189,3 +186,7 @@ class SolarShieldCoordinator(DataUpdateCoordinator):
         if not self._override_until:
             return False
         return dt_util.utcnow() < self._override_until
+
+    def update_config(self, new_config: dict) -> None:
+        """Update coordinator config after options flow change."""
+        self._config = {**self._config, **new_config}

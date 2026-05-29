@@ -1,7 +1,7 @@
 """Constants for SolarShield HA."""
 
 DOMAIN = "solarshield"
-PLATFORMS = []
+PLATFORMS = ["sensor"]
 
 # Config keys - Window geometry
 CONF_WINDOW_AZIMUTH = "window_azimuth"

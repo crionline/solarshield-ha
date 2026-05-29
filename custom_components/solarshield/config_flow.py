@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import callback
 from homeassistant.helpers import entity_registry as er
 import homeassistant.helpers.config_validation as cv
 
@@ -141,22 +141,20 @@ class SolarShieldConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @callback
     def async_get_options_flow(config_entry):
         """Return options flow."""
-        return SolarShieldOptionsFlow(config_entry)
+        return SolarShieldOptionsFlow()
 
 
 class SolarShieldOptionsFlow(config_entries.OptionsFlow):
     """Handle options flow for SolarShield HA."""
-
-    def __init__(self, config_entry):
-        """Initialize options flow."""
-        self.config_entry = config_entry
 
     async def async_step_init(self, user_input=None):
         """Manage options."""
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
-        data = self.config_entry.data
+        # Merge base config + existing options
+        data = {**self.config_entry.data, **self.config_entry.options}
+
         schema = vol.Schema({
             vol.Optional(CONF_LUX_THRESHOLD, default=data.get(CONF_LUX_THRESHOLD, DEFAULT_LUX_THRESHOLD)): vol.All(
                 vol.Coerce(int), vol.Range(min=0, max=100000)

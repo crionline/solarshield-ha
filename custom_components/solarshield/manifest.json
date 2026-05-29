@@ -1,7 +1,7 @@
 {
   "domain": "solarshield",
   "name": "SolarShield HA",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "documentation": "https://github.com/crionline/solarshield-ha",
   "issue_tracker": "https://github.com/crionline/solarshield-ha/issues",
   "codeowners": ["@crionline"],
