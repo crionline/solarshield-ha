@@ -7,6 +7,8 @@ from typing import Any
 from homeassistant.components.sensor import SensorEntity, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_platform
+from homeassistant.helpers.entity import DeviceEntryType
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -31,6 +33,18 @@ async def async_setup_entry(
         SolarShieldStatusSensor(coordinator, entry, cover_entity),
     ])
 
+    platform = entity_platform.async_get_current_platform()
+    platform.async_register_entity_service(
+        "set_manual_override",
+        {},
+        "async_set_manual_override",
+    )
+    platform.async_register_entity_service(
+        "clear_manual_override",
+        {},
+        "async_clear_manual_override",
+    )
+
 
 class SolarShieldBaseSensor(CoordinatorEntity, SensorEntity):
     """Base class for SolarShield sensors."""
@@ -53,6 +67,16 @@ class SolarShieldBaseSensor(CoordinatorEntity, SensorEntity):
         self._attr_unique_id = f"solarshield_{entry.entry_id}_{sensor_key}"
         self._attr_icon = icon
 
+    async def async_set_manual_override(self) -> None:
+        """Service call to set manual override."""
+        self.coordinator.set_manual_override()
+        await self.coordinator.async_refresh()
+
+    async def async_clear_manual_override(self) -> None:
+        """Service call to clear manual override."""
+        self.coordinator.clear_manual_override()
+        await self.coordinator.async_refresh()
+
     @property
     def device_info(self) -> dict[str, Any]:
         """Return device info to group sensors under a single device."""
@@ -61,7 +85,7 @@ class SolarShieldBaseSensor(CoordinatorEntity, SensorEntity):
             "name": f"SolarShield ({self._cover_entity})",
             "manufacturer": "SolarShield HA",
             "model": "Sun-based cover controller",
-            "entry_type": "service",
+            "entry_type": DeviceEntryType.SERVICE,
         }
 
 
@@ -154,6 +178,7 @@ class SolarShieldStatusSensor(SolarShieldBaseSensor):
             "sun_elevation": data.get("sun_elevation"),
             "sun_azimuth": data.get("sun_azimuth"),
             "target_position": data.get("target_position"),
+            "tilt_position": data.get("tilt_position"),
             "sun_active": data.get("sun_active"),
             "override_active": self.coordinator.is_overridden,
         }

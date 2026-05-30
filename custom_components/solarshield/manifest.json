@@ -1,12 +1,13 @@
 {
   "domain": "solarshield",
   "name": "SolarShield HA",
-  "version": "1.1.0",
+  "version": "1.2.1",
   "documentation": "https://github.com/crionline/solarshield-ha",
   "issue_tracker": "https://github.com/crionline/solarshield-ha/issues",
   "codeowners": ["@crionline"],
   "requirements": [],
   "dependencies": ["sun"],
   "iot_class": "calculated",
-  "config_flow": true
+  "config_flow": true,
+  "homeassistant": "2024.1.0"
 }

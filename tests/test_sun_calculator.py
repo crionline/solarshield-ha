@@ -5,6 +5,7 @@ import pytest
 from custom_components.solarshield.sun_calculator import (
     calculate_cover_position,
     calculate_required_shade_height,
+    calculate_venetian_tilt,
     is_sun_facing_window,
     shade_height_to_cover_position,
 )
@@ -85,3 +86,47 @@ def test_cover_position_clamped_to_min():
     )
     assert active is True
     assert position >= 10
+
+
+# ── Venetian tilt tests ────────────────────────────────────────────────────
+
+def test_venetian_tilt_sun_below_horizon():
+    """Sun at or below horizon → maximum tilt (vertical slats)."""
+    assert calculate_venetian_tilt(0) == 100
+    assert calculate_venetian_tilt(-10) == 100
+
+
+def test_venetian_tilt_sun_at_zenith():
+    """Sun directly overhead (90°) → minimum tilt (horizontal slats)."""
+    assert calculate_venetian_tilt(90) == 0
+
+
+def test_venetian_tilt_45_degrees():
+    """Sun at 45° → tilt should be 50%."""
+    assert calculate_venetian_tilt(45) == 50
+
+
+def test_venetian_tilt_30_degrees():
+    """Sun at 30° → tilt should be ~67%."""
+    result = calculate_venetian_tilt(30)
+    assert result == round((90 - 30) / 90 * 100)
+
+
+def test_venetian_tilt_monotonic_decrease():
+    """Higher sun elevation → lower tilt (slats more horizontal)."""
+    tilts = [calculate_venetian_tilt(e) for e in range(5, 85, 10)]
+    assert tilts == sorted(tilts, reverse=True)
+
+
+def test_venetian_tilt_custom_min_max():
+    """Custom min/max tilt limits are respected."""
+    assert calculate_venetian_tilt(90, min_tilt=10, max_tilt=90) == 10
+    assert calculate_venetian_tilt(0, min_tilt=10, max_tilt=90) == 90
+    result = calculate_venetian_tilt(45, min_tilt=20, max_tilt=80)
+    assert 20 <= result <= 80
+
+
+def test_venetian_tilt_output_is_integer():
+    """Result must always be an int (HA service expects int)."""
+    for elev in range(0, 91, 5):
+        assert isinstance(calculate_venetian_tilt(elev), int)

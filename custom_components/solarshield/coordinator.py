@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
@@ -28,6 +29,8 @@ from .const import (
     CONF_UPDATE_INTERVAL,
     CONF_WINDOW_ANGULAR_WIDTH,
     CONF_WINDOW_AZIMUTH,
+    COVER_TYPE_BLIND,
+    COVER_TYPE_VENETIAN,
     DEFAULT_HYSTERESIS,
     DEFAULT_LUX_THRESHOLD,
     DEFAULT_MAX_POSITION,
@@ -37,7 +40,7 @@ from .const import (
     DOMAIN,
     SUN_ENTITY,
 )
-from .sun_calculator import calculate_cover_position
+from .sun_calculator import calculate_cover_position, calculate_venetian_tilt
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -51,6 +54,22 @@ class SolarShieldCoordinator(DataUpdateCoordinator):
         self._entry_id = entry_id
         self._override_until: datetime | None = None
         self._last_position: int | None = None
+        self._unsub_tracker = None
+
+        # Try to initialize self._last_position from the current state of the cover
+        cover_entity = config.get(CONF_COVER_ENTITY)
+        if cover_entity:
+            cover_state = hass.states.get(cover_entity)
+            if cover_state:
+                try:
+                    self._last_position = int(cover_state.attributes.get("current_position"))
+                except (TypeError, ValueError):
+                    pass
+
+            # Track cover entity state changes to detect manual override
+            self._unsub_tracker = async_track_state_change_event(
+                hass, [cover_entity], self._async_handle_cover_state_change
+            )
 
         update_interval = timedelta(
             minutes=config.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
@@ -74,7 +93,7 @@ class SolarShieldCoordinator(DataUpdateCoordinator):
 
         # Check manual override
         if self._override_until and now < self._override_until:
-            remaining = (self._override_until - now).seconds // 60
+            remaining = int((self._override_until - now).total_seconds() // 60)
             _LOGGER.debug("SolarShield: manual override active, %d min remaining", remaining)
             return {"override": True, "override_remaining_min": remaining}
 
@@ -84,25 +103,35 @@ class SolarShieldCoordinator(DataUpdateCoordinator):
             _LOGGER.warning("SolarShield: sun.sun entity not found")
             return {"error": "sun_not_found"}
 
-        elevation = float(sun_state.attributes.get(ATTR_ELEVATION, 0))
-        azimuth = float(sun_state.attributes.get(ATTR_AZIMUTH, 0))
+        try:
+            elevation = sun_state.attributes.get(ATTR_ELEVATION)
+            azimuth = sun_state.attributes.get(ATTR_AZIMUTH)
+            if elevation is None or azimuth is None:
+                raise ValueError("Sun elevation or azimuth is None")
+            elevation = float(elevation)
+            azimuth = float(azimuth)
+        except (ValueError, TypeError) as err:
+            _LOGGER.error("SolarShield: invalid sun attributes: %s", err)
+            return {"error": "invalid_sun_attributes"}
 
         # Check lux threshold
         lux_sensor = config.get(CONF_LUX_SENSOR)
+        lux_low = False
+        lux_val = None
         if lux_sensor:
             lux_state = self.hass.states.get(lux_sensor)
             if lux_state:
                 try:
-                    lux = float(lux_state.state)
+                    lux_val = float(lux_state.state)
                     threshold = config.get(CONF_LUX_THRESHOLD, DEFAULT_LUX_THRESHOLD)
-                    if lux < threshold:
+                    if lux_val < threshold:
                         _LOGGER.debug(
                             "SolarShield: lux %.0f below threshold %d, releasing cover",
-                            lux, threshold
+                            lux_val, threshold
                         )
-                        return {"lux_below_threshold": True, "lux": lux}
-                except (ValueError, TypeError):
-                    pass
+                        lux_low = True
+                except (ValueError, TypeError) as err:
+                    _LOGGER.warning("SolarShield: invalid lux sensor state: %s", err)
 
         # Check presence
         presence_sensor = config.get(CONF_PRESENCE_SENSOR)
@@ -126,25 +155,33 @@ class SolarShieldCoordinator(DataUpdateCoordinator):
             max_position=config.get(CONF_MAX_POSITION, DEFAULT_MAX_POSITION),
         )
 
+        # If sun is not active on the window, or lux is below threshold,
+        # the cover should be set to max_position (released/opened).
+        target_position = position
+        if not sun_active or lux_low:
+            target_position = config.get(CONF_MAX_POSITION, DEFAULT_MAX_POSITION)
+
         result = {
             "sun_elevation": elevation,
             "sun_azimuth": azimuth,
             "sun_active": sun_active,
-            "target_position": position,
+            "target_position": target_position,
         }
 
-        if not sun_active:
-            return result
+        if lux_low:
+            result["lux_below_threshold"] = True
+            if lux_val is not None:
+                result["lux"] = lux_val
 
         # Apply hysteresis
         hysteresis = config.get(CONF_HYSTERESIS, DEFAULT_HYSTERESIS)
         if (
             self._last_position is not None
-            and abs(position - self._last_position) < hysteresis
+            and abs(target_position - self._last_position) < hysteresis
         ):
             _LOGGER.debug(
                 "SolarShield: position change %d -> %d below hysteresis %d, skipping",
-                self._last_position, position, hysteresis
+                self._last_position, target_position, hysteresis
             )
             result["skipped_hysteresis"] = True
             return result
@@ -152,18 +189,34 @@ class SolarShieldCoordinator(DataUpdateCoordinator):
         # Send cover command
         cover_entity = config[CONF_COVER_ENTITY]
         _LOGGER.info(
-            "SolarShield: setting %s to position %d (elevation=%.1f, azimuth=%.1f)",
-            cover_entity, position, elevation, azimuth
+            "SolarShield: setting %s to position %d (elevation=%.1f, azimuth=%.1f, sun_active=%s, lux_low=%s)",
+            cover_entity, target_position, elevation, azimuth, sun_active, lux_low
         )
 
         await self.hass.services.async_call(
             "cover",
             "set_cover_position",
-            {"entity_id": cover_entity, "position": position},
+            {"entity_id": cover_entity, "position": target_position},
             blocking=False,
         )
-        self._last_position = position
+        self._last_position = target_position
         result["command_sent"] = True
+
+        # For venetian blinds, also send optimal tilt
+        cover_type = config.get(CONF_COVER_TYPE, COVER_TYPE_BLIND)
+        if cover_type == COVER_TYPE_VENETIAN and sun_active and not lux_low:
+            tilt = calculate_venetian_tilt(elevation)
+            await self.hass.services.async_call(
+                "cover",
+                "set_cover_tilt_position",
+                {"entity_id": cover_entity, "tilt_position": tilt},
+                blocking=False,
+            )
+            result["tilt_position"] = tilt
+            _LOGGER.info(
+                "SolarShield: setting tilt of %s to %d%% (elevation=%.1f)",
+                cover_entity, tilt, elevation
+            )
 
         return result
 
@@ -190,3 +243,50 @@ class SolarShieldCoordinator(DataUpdateCoordinator):
     def update_config(self, new_config: dict) -> None:
         """Update coordinator config after options flow change."""
         self._config = {**self._config, **new_config}
+
+    async def _async_handle_cover_state_change(self, event) -> None:
+        """Handle state change of the tracked cover entity."""
+        new_state = event.data.get("new_state")
+        old_state = event.data.get("old_state")
+
+        if not new_state or not old_state:
+            return
+
+        # If the cover is currently moving, wait until it stops to evaluate
+        if new_state.state in ("opening", "closing"):
+            return
+
+        # We are interested in the position attribute
+        new_position = new_state.attributes.get("current_position")
+        old_position = old_state.attributes.get("current_position")
+
+        if new_position is None:
+            return
+
+        # If the position and state haven't changed, ignore
+        if old_position is not None and new_position == old_position:
+            if new_state.state == old_state.state:
+                return
+
+        # If we haven't sent any command yet, initialize and don't trigger override
+        if self._last_position is None:
+            self._last_position = int(new_position)
+            return
+
+        # Check if the final position matches our last commanded position (2% tolerance)
+        if abs(int(new_position) - self._last_position) <= 2:
+            return
+
+        # The position does not match our target, meaning it was moved manually
+        _LOGGER.info(
+            "SolarShield: manual cover movement detected for %s (final position %s, expected %s). Activating manual override.",
+            self._config[CONF_COVER_ENTITY], new_position, self._last_position
+        )
+        self.set_manual_override()
+        await self.async_refresh()
+
+    async def async_close(self) -> None:
+        """Close resources and remove listeners."""
+        if self._unsub_tracker:
+            self._unsub_tracker()
+            self._unsub_tracker = None

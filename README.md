@@ -1,4 +1,4 @@
-# SolarShield HA (Beta version)
+# SolarShield HA
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
 
@@ -60,6 +60,7 @@ All configuration is done via the UI config flow. You will be asked for:
 | Min position | Minimum allowed position (default: 10) |
 | Max position | Maximum allowed position (default: 100) |
 | Position hysteresis | Minimum change before sending a command (default: 5) |
+| Tilt hysteresis | Minimum tilt change before sending a command (default: 5) |
 | Update interval | How often to recalculate (minutes, default: 5) |
 
 ### Optional
@@ -86,6 +87,25 @@ Where:
 - `q` = height of the protected point from the floor (cm)
 
 The cover position is then derived from `h` relative to the glass height and sill height.
+
+## Venetian Blind Tilt Algorithm
+
+For `venetian` covers, an optimal slat tilt angle is calculated to block direct sunlight
+while allowing diffuse light through:
+
+```
+tilt = (90 - α) / 90 × 100
+```
+
+Where:
+- `tilt` = tilt position sent to HA (0 = slats horizontal, 100 = slats vertical)
+- `α` = sun elevation angle
+
+This means slats are angled perpendicular to the incoming sun rays:
+- High sun (α → 90°): slats nearly horizontal → `tilt → 0`
+- Low sun (α → 0°): slats nearly vertical → `tilt → 100`
+
+Tilt is only applied when the sun is active on the window and lux is above threshold.
 
 ## License
 

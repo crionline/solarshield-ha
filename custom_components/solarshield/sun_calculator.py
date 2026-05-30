@@ -113,3 +113,39 @@ def calculate_cover_position(
     )
 
     return position, True
+
+
+def calculate_venetian_tilt(
+    sun_elevation_deg: float,
+    min_tilt: int = 0,
+    max_tilt: int = 100,
+) -> int:
+    """
+    Calculate the optimal tilt position for venetian (slatted) blinds.
+
+    The slat angle is chosen so the slats are perpendicular to the sun rays,
+    providing maximum shading while allowing diffuse light through.
+
+    Convention (standard HA):
+      tilt_position = 0   → slats horizontal  (blocks overhead / high sun)
+      tilt_position = 100 → slats vertical     (blocks low / horizon sun)
+
+    Formula: tilt = (90 - sun_elevation) / 90 * 100
+
+    Args:
+        sun_elevation_deg: Current sun elevation in degrees (0 = horizon, 90 = zenith)
+        min_tilt: Minimum allowed tilt position (default 0)
+        max_tilt: Maximum allowed tilt position (default 100)
+
+    Returns:
+        Tilt position as integer 0-100.
+    """
+    if sun_elevation_deg <= 0:
+        return max_tilt  # Sun at or below horizon → maximum tilt (vertical slats)
+
+    if sun_elevation_deg >= 90:
+        return min_tilt  # Sun directly overhead → slats horizontal
+
+    raw = (90.0 - sun_elevation_deg) / 90.0 * 100.0
+    return int(max(min_tilt, min(max_tilt, round(raw))))
+

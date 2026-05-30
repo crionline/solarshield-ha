@@ -1,0 +1,72 @@
+# ──────────────────────────────────────────────
+# SolarShield HA — .gitignore
+# ──────────────────────────────────────────────
+
+# ── Python ────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+*.whl
+
+# ── Virtual environments ───────────────────────
+.venv/
+venv/
+env/
+.env/
+
+# ── Test & coverage ───────────────────────────
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+.tox/
+.nox/
+
+# ── Type checking ─────────────────────────────
+.mypy_cache/
+.pytype/
+.pyre/
+
+# ── IDE / editor configs ──────────────────────
+# Cursor rules (local dev assistant config)
+.cursorrules
+# Cline rules (local dev assistant config)
+.clinerules
+# VS Code
+.vscode/
+# JetBrains (PyCharm, etc.)
+.idea/
+*.iml
+# Vim
+*.swp
+*.swo
+
+# ── OS artifacts ──────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Secrets & credentials ─────────────────────
+secrets.yaml
+secrets.json
+*.key
+*.pem
+*.p12
+.env
+.env.*
+
+# ── Home Assistant local dev leftovers ────────
+# If anyone symlinks or copies a local HA config here for testing
+home-assistant.log
+home-assistant_v2.db
+home-assistant_v2.db-shm
+home-assistant_v2.db-wal
+.storage/
+deps/
+tts/
